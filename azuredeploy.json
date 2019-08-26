@@ -18,10 +18,6 @@
       "type": "string",
       "defaultValue": "[subscription().tenantId]"
     },
-    "object-id": {
-      "type": "string",
-      "defaultValue": "19a6deea-9614-4698-859d-0493c3b7384a"
-    },
     "keyvault-secret-name": {
       "type": "string",
       "defaultValue": "[substring(uniqueString(resourceGroup().id),0,8)]"
@@ -62,7 +58,8 @@
   },
 
   "variables": {
-    "vnet-id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]"
+    "vnet-id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]",
+    "webapp-msi-id": "[concat(resourceId('Microsoft.Web/sites', parameters('webapp-name')), '/providers/Microsoft.ManagedIdentity/Identities/default')]"
   },
 
   "resources": [
@@ -123,10 +120,10 @@
         "tenantId": "[parameters('tenant-id')]",
         "accessPolicies": [
           {
-            "objectid": "[parameters('object-id')]",
+            "objectid": "[reference(variables('webapp-msi-id'), '2015-08-31-PREVIEW').principalId]",
             "tenantId": "[parameters('tenant-id')]",
             "permissions": {
-              "secrets": [ "list" ]
+              "secrets": [ "get", "list" ]
             }
           }
         ],
@@ -240,6 +237,9 @@
       "name": "[parameters('webapp-name')]",
       "location": "[parameters('location')]",
       "kind": "app",
+      "identity": {
+        "type": "SystemAssigned"
+      },
       "tags": {
         "tag-sample": "tag-sample-value"
       },

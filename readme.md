@@ -21,4 +21,4 @@ Application Gateway or Traffic manager may be utilized as an optional considerat
 
 Road to the solution:
 1. Investigation (3 hours)
-2. Impementation (3 hours)
+2. Implementation (3 hours)

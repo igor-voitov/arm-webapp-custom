@@ -1,8 +1,307 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
-  "parameters": {},
-  "variables": {},
-  "resources": [],
-  "outputs": {}
-}
+  "parameters": {
+    "storageaccount-name": {
+      "type": "string",
+      "defaultValue": "[substring(uniqueString(resourceGroup().id),0,8)]"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "keyvault-name": {
+      "type": "string",
+      "defaultValue": "[concat('keyvault', substring(uniqueString(resourceGroup().id),0,8))]"
+    },
+    "tenant-id": {
+      "type": "string",
+      "defaultValue": "[subscription().tenantId]"
+    },
+    "object-id": {
+      "type": "string",
+      "defaultValue": "19a6deea-9614-4698-859d-0493c3b7384a"
+    },
+    "keyvault-secret-name": {
+      "type": "string",
+      "defaultValue": "[substring(uniqueString(resourceGroup().id),0,8)]"
+    },
+    "keyvault-secret-value": {
+      "type": "string",
+      "defaultValue": "[substring(uniqueString(resourceGroup().id),0,8)]"
+    },
+    "vnet-name": {
+      "type": "string",
+      "defaultValue": "[substring(uniqueString(resourceGroup().id),0,8)]"
+    },
+    "vnet-addressprefix": {
+      "type": "string",
+      "defaultValue": "10.0.0.0/16"
+    },
+    "vnet-subnet-name": {
+      "type": "string",
+      "defaultValue": "[substring(uniqueString(resourceGroup().id),0,8)]"
+    },
+    "vnet-subnet-prefix": {
+      "type": "string",
+      "defaultValue": "10.0.0.0/24"
+    },
+    "webapp-name": {
+      "type": "string",
+      "defaultValue": "[substring(uniqueString(resourceGroup().id),0,8)]"
+    },
+    "appserviceplan-name": {
+      "type": "string",
+      "defaultValue": "[substring(uniqueString(resourceGroup().id),0,8)]"
+    },
+    "tag-sample-value": {
+      "type": "string",
+      "defaultValue": "[substring(uniqueString(resourceGroup().id),0,8)]"
+    }
+
+  },
+
+  "variables": {
+    "vnet-id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]"
+  },
+
+  "resources": [
+    {
+      "apiVersion": "2017-06-01",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[parameters('vnet-name')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+      ],
+      "tags": {
+        "tag-sample": "tag-sample-value"
+      },
+
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('vnet-addressprefix')]"
+          ]
+        },
+
+        "subnets": [
+          {
+            "name": "[parameters('vnet-subnet-name')]",
+            "properties": {
+              "addressPrefix": "[parameters('vnet-subnet-prefix')]",
+              "serviceEndpoints": [
+                {
+                  "service": "Microsoft.Storage"
+                },
+                {
+                  "service": "Microsoft.KeyVault"
+                }
+              ]
+            }
+          }
+
+        ]
+      }
+    },
+
+
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "name": "[parameters('keyvault-name')]",
+      "apiVersion": "2018-02-14",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]"
+      ],
+      "tags": {
+        "tag-sample": "[parameters('tag-sample-value')]"
+      },
+      "properties": {
+        "enabledForDeployment": true,
+        "enabledForTemplateDeployment": true,
+        "enabledForDiskEncryption": true,
+        "tenantId": "[parameters('tenant-id')]",
+        "accessPolicies": [
+          {
+            "objectid": "[parameters('object-id')]",
+            "tenantId": "[parameters('tenant-id')]",
+            "permissions": {
+              "secrets": [ "list" ]
+            }
+          }
+        ],
+        "sku": {
+          "name": "Standard",
+          "family": "A"
+        },
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Deny",
+          "virtualNetworkRules": [
+            {
+              "id": "[concat(variables('vnet-id'), '/subnets/', parameters('vnet-subnet-name'))]",
+              "action": "Allow"
+            }
+          ]
+
+        }
+      }
+    },
+
+    {
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "name": "[concat(parameters('keyvault-name'), '/', parameters('keyvault-secret-name'))]",
+      "apiVersion": "2018-02-14",
+      "location": "[parameters('location')]",
+      "tags": {
+        "tag-sample": "tag-sample-value"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', parameters('keyvault-name'))]"
+      ],
+      "properties": {
+        "value": "[parameters('keyvault-secret-value')]"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2019-04-01",
+      "name": "[parameters('storageaccount-name')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]"
+      ],
+
+      "tags": {
+        "tag-sample": "tag-sample-value"
+      },
+
+      "sku": {
+        "name": "Standard_LRS",
+        "tier": "Standard"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "encryption": {
+          "keySource": "Microsoft.Storage",
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          }
+        },
+        "isHnsEnabled": true,
+        "supportsHttpsTrafficOnly": true,
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Deny",
+          "virtualNetworkRules": [
+            {
+              "id": "[concat(variables('vnet-id'), '/subnets/', parameters('vnet-subnet-name'))]",
+              "action": "Allow"
+            }
+          ]
+
+        }
+
+      }
+    },
+
+
+
+
+    {
+      "apiVersion": "2016-03-01",
+      "name": "[parameters('appserviceplan-name')]",
+      "type": "Microsoft.Web/serverfarms",
+      "location": "[parameters('location')]",
+      "kind": "linux",
+      "tags": {},
+      "properties": {
+        "name": "[parameters('appserviceplan-name')]",
+        "workerSize": "0",
+        "workerSizeId": "0",
+        "numberOfWorkers": "1",
+        "reserved": true,
+        "hostingEnvironment": ""
+      },
+      "sku": {
+        "Tier": "Standard",
+        "Name": "S1"
+      }
+    },
+
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2016-08-01",
+      "name": "[parameters('webapp-name')]",
+      "location": "[parameters('location')]",
+      "kind": "app",
+      "tags": {
+        "tag-sample": "tag-sample-value"
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appserviceplan-name'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', parameters('appserviceplan-name'))]"
+      ]
+    },
+
+
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2016-08-01",
+      "name": "[concat(parameters('webapp-name'), '/web')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "tag-sample": "tag-sample-value"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('webapp-name'))]"
+      ],
+      "properties": {
+        "numberOfWorkers": 1
+      }
+    },
+
+
+    {
+      "type": "Microsoft.Web/sites/hostNameBindings",
+      "apiVersion": "2016-08-01",
+      "name": "[concat(parameters('webapp-name'), '/', parameters('webapp-name'), '.azurewebsites.net')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "tag-sample": "tag-sample-value"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('webapp-name'))]"
+      ],
+      "properties": {
+        "siteName": "[parameters('webapp-name')]"
+      }
+    },
+
+
+    {
+      "type": "Microsoft.Web/sites/virtualNetworkConnections",
+      "apiVersion": "2016-08-01",
+      "name": "[concat(parameters('webapp-name'), '/vnet-connection')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "tag-sample": "tag-sample-value"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('webapp-name'))]"
+      ],
+      "properties": {
+        "vnetResourceId": "[variables('vnet-id')]"
+      }
+    }
+
+  ],
+        "outputs": {}
+      }

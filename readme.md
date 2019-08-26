@@ -1,4 +1,4 @@
-ARM template for deploying the following solution:
+ARM template the following :
 
 	• An Azure Datalake Gen 2 storage account.
 	• A key vault with a secret
@@ -6,10 +6,12 @@ ARM template for deploying the following solution:
 	• A web app that can access both the datalake storage and the key vault secret
 	• Use tags to group the resources. 
 
-Road to the solution
-(why you have chosen a certain way to approach this assignment)
-"A load balancer that sits between the web app and the internet" missed since app service contains internal balancer out-of-the box.
+Assumptions:
+Azure Load Balancer was not added since it is primarily designated for IaaS payload
+Setting-up App Service Environment with Internal Load Balancer might be excessive for this setup
+Application Gateway or Traffic manager may be utilized as an optional consideration 
 
-Take note of your assumptions, and explain the choices you made
 
-A simple time log
+Road to the solution:
+1. Investigation (3 hours)
+2. Impementation (3 hours)

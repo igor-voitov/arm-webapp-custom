@@ -108,7 +108,8 @@
       "apiVersion": "2018-02-14",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnet-name'))]",
+        "[resourceId('Microsoft.Web/sites', parameters('webapp-name'))]"
       ],
       "tags": {
         "tag-sample": "[parameters('tag-sample-value')]"
